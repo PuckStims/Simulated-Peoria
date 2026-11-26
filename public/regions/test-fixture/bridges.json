@@ -1,0 +1,1 @@
+{"provenance": {"source": "Synthetic Verification Fixture", "license": "ODbL 1.0 (\u00a9 OpenStreetMap contributors)", "processedAtUtc": "2026-11-25T16:56:05.622082+00:00"}, "bridges": [{"id": "br-rd-2002-0", "name": "Fixture Crossing Bridge", "kind": "road", "widthMeters": 12.0, "points": [[-900.0, 146.46, 0.0], [900.0, 148.33, 0.0]]}]}

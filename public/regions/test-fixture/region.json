@@ -1,0 +1,156 @@
+{
+  "id": "test-fixture",
+  "name": "Microcosm Test Valley Fixture",
+  "subtitle": "Synthetic Verification Fixture",
+  "dataMode": "fixture",
+  "bounds": {
+    "west": -89.64,
+    "east": -89.52,
+    "south": 40.675,
+    "north": 40.765
+  },
+  "reference": {
+    "latitude": 40.72,
+    "longitude": -89.58,
+    "elevationMeters": 150.0
+  },
+  "coordinateSystem": {
+    "projectedCrs": "EPSG:26916",
+    "proj4": "+proj=utm +zone=16 +datum=NAD83 +units=m +no_defs +type=crs",
+    "origin": {
+      "lon": -89.58,
+      "lat": 40.72,
+      "easting": 282091.3081,
+      "northing": 4510876.9304,
+      "elevationDatumMeters": 130.0
+    },
+    "meridianConvergenceDeg": 1.68376,
+    "alignTrueNorthToNegativeZ": true,
+    "extentMeters": {
+      "width": 8000.0,
+      "depth": 10000.0
+    },
+    "horizontalScale": 1.0,
+    "verticalScale": 1.0
+  },
+  "timezone": "America/Chicago",
+  "elevationDatum": "NAVD88 (synthetic meters)",
+  "terrain": {
+    "levels": [
+      {
+        "id": "overview",
+        "label": "Overview (100m)",
+        "spacingMeters": 100.0,
+        "cols": 81,
+        "rows": 101,
+        "file": "terrain_overview.bin",
+        "encoding": "uint16-linear",
+        "minElevationMeters": 131.0006,
+        "maxElevationMeters": 194.9491
+      },
+      {
+        "id": "balanced",
+        "label": "Balanced (50m)",
+        "spacingMeters": 50.0,
+        "cols": 161,
+        "rows": 201,
+        "file": "terrain_balanced.bin",
+        "encoding": "uint16-linear",
+        "minElevationMeters": 131.0,
+        "maxElevationMeters": 194.957
+      }
+    ],
+    "chunksX": 2,
+    "chunksZ": 2,
+    "substrateBottomMeters": 95.0,
+    "waterReferenceElevationMeters": 134.0
+  },
+  "vectors": {
+    "hydrologyFile": "hydrology.json",
+    "roadsFile": "roads.json",
+    "railwaysFile": "railways.json",
+    "bridgesFile": "bridges.json",
+    "buildingsFile": "buildings.json",
+    "landcoverFile": "landcover.json"
+  },
+  "landmarks": [
+    {
+      "id": "fixture-town",
+      "name": "Fixture Landing",
+      "lon": -89.592,
+      "lat": 40.715,
+      "category": "city"
+    },
+    {
+      "id": "fixture-bridge",
+      "name": "Fixture Crossing",
+      "lon": -89.58,
+      "lat": 40.72,
+      "category": "landmark"
+    }
+  ],
+  "dataSources": [
+    {
+      "name": "Synthetic Verification Fixture DEM & Vectors",
+      "kind": "fixture",
+      "url": "local://tools/build_fixture.py",
+      "acquisitionDate": "Deterministic generator",
+      "extent": "8km x 10km synthetic valley",
+      "resolution": "50m balanced / 100m overview",
+      "crs": "EPSG:26916",
+      "datum": "NAVD88 (synthetic meters)",
+      "license": "Project Microcosm Test Fixture (MIT)",
+      "attribution": "Generated locally by tools/build_fixture.py"
+    }
+  ],
+  "processingSummary": {
+    "processedAtUtc": "2026-11-25T16:56:05.621081+00:00",
+    "vectorCounts": {
+      "waterBodies": 1,
+      "waterways": 0,
+      "roads": 1,
+      "railways": 1,
+      "bridges": 1,
+      "buildings": 2,
+      "buildingsTotalExtracted": 2,
+      "landcoverAreas": 2
+    }
+  },
+  "assetIntegrity": {
+    "algorithm": "sha256",
+    "assets": {
+      "bridges.json": {
+        "bytes": 339,
+        "sha256": "1836bd821a0281d0697bdeba271cb65f403b30c20f09a7420a7ec4e1fe818ad8"
+      },
+      "buildings.json": {
+        "bytes": 869,
+        "sha256": "f5d623ab53fe548e10f7ef190cbb1fe1167e5b02bcd22c84228281491652c9fd"
+      },
+      "hydrology.json": {
+        "bytes": 1191,
+        "sha256": "03f2de9c12f6ce67bf5040cebbad744e42fe7b146b99132bf98abe93a26410ea"
+      },
+      "landcover.json": {
+        "bytes": 442,
+        "sha256": "5c5ebdd5d3ce907bccc20109f720a0ed143ddc49322220640f058cced5c95f7b"
+      },
+      "railways.json": {
+        "bytes": 282,
+        "sha256": "3efd7634c33075886318fd1f308b8b6e9c5def80d64ef09cef842a79a8b39e66"
+      },
+      "roads.json": {
+        "bytes": 342,
+        "sha256": "1b9b3fab09d2bd3fc5ef9157babc41b3adf79d19b911ecae9648375c24a916a4"
+      },
+      "terrain_balanced.bin": {
+        "bytes": 64722,
+        "sha256": "d2b6cce15bdfdb5eea80d0c78ff132afd728ab4d3248150dad7c836be50829e9"
+      },
+      "terrain_overview.bin": {
+        "bytes": 16362,
+        "sha256": "367d9698102eca8d5333303c04337c7af796355c1f5e75901d657952241362ac"
+      }
+    }
+  }
+}

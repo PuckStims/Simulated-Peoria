@@ -1,0 +1,241 @@
+{
+  "id": "peoria-il",
+  "name": "Greater Peoria & Illinois River Valley",
+  "subtitle": "Illinois, USA",
+  "dataMode": "real",
+  "bounds": {
+    "west": -89.698,
+    "east": -89.462,
+    "south": 40.607,
+    "north": 40.833
+  },
+  "reference": {
+    "latitude": 40.72,
+    "longitude": -89.58,
+    "elevationMeters": 155.0
+  },
+  "coordinateSystem": {
+    "projectedCrs": "EPSG:26916",
+    "proj4": "+proj=utm +zone=16 +datum=NAD83 +units=m +no_defs +type=crs",
+    "origin": {
+      "lon": -89.58,
+      "lat": 40.72,
+      "easting": 282091.3081,
+      "northing": 4510876.9304,
+      "elevationDatumMeters": 130.0
+    },
+    "meridianConvergenceDeg": 1.68376,
+    "alignTrueNorthToNegativeZ": true,
+    "extentMeters": {
+      "width": 20000.0,
+      "depth": 25000.0
+    },
+    "horizontalScale": 1.0,
+    "verticalScale": 1.0
+  },
+  "timezone": "America/Chicago",
+  "elevationDatum": "NAVD88 (meters)",
+  "terrain": {
+    "levels": [
+      {
+        "id": "overview",
+        "label": "Overview (100m)",
+        "spacingMeters": 100.0,
+        "cols": 201,
+        "rows": 251,
+        "file": "terrain_overview.bin",
+        "encoding": "uint16-linear",
+        "minElevationMeters": 132.5031,
+        "maxElevationMeters": 250.7896
+      },
+      {
+        "id": "balanced",
+        "label": "Balanced (25m)",
+        "spacingMeters": 25.0,
+        "cols": 801,
+        "rows": 1001,
+        "file": "terrain_balanced.bin",
+        "encoding": "uint16-linear",
+        "minElevationMeters": 132.2656,
+        "maxElevationMeters": 252.5697
+      }
+    ],
+    "chunksX": 4,
+    "chunksZ": 5,
+    "substrateBottomMeters": 85.0,
+    "waterReferenceElevationMeters": 134.1
+  },
+  "vectors": {
+    "hydrologyFile": "hydrology.json",
+    "roadsFile": "roads.json",
+    "railwaysFile": "railways.json",
+    "bridgesFile": "bridges.json",
+    "buildingsFile": "buildings.json",
+    "landcoverFile": "landcover.json"
+  },
+  "landmarks": [
+    {
+      "id": "peoria",
+      "name": "Peoria",
+      "lon": -89.589,
+      "lat": 40.6936,
+      "category": "city"
+    },
+    {
+      "id": "west-peoria",
+      "name": "West Peoria",
+      "lon": -89.622,
+      "lat": 40.695,
+      "category": "city"
+    },
+    {
+      "id": "peoria-heights",
+      "name": "Peoria Heights",
+      "lon": -89.573,
+      "lat": 40.742,
+      "category": "city"
+    },
+    {
+      "id": "east-peoria",
+      "name": "East Peoria",
+      "lon": -89.58,
+      "lat": 40.666,
+      "category": "city"
+    },
+    {
+      "id": "creve-coeur",
+      "name": "Creve Coeur",
+      "lon": -89.596,
+      "lat": 40.646,
+      "category": "city"
+    },
+    {
+      "id": "bartonville",
+      "name": "Bartonville",
+      "lon": -89.66,
+      "lat": 40.637,
+      "category": "city"
+    },
+    {
+      "id": "mossville",
+      "name": "Mossville",
+      "lon": -89.57,
+      "lat": 40.822,
+      "category": "city"
+    },
+    {
+      "id": "peoria-lake",
+      "name": "Peoria Lake",
+      "lon": -89.538,
+      "lat": 40.765,
+      "category": "water"
+    },
+    {
+      "id": "grandview-bluff",
+      "name": "Grandview Drive Bluff",
+      "lon": -89.556,
+      "lat": 40.734,
+      "category": "bluff"
+    },
+    {
+      "id": "murray-baker",
+      "name": "Murray Baker Bridge",
+      "lon": -89.5858,
+      "lat": 40.6887,
+      "category": "landmark"
+    },
+    {
+      "id": "mcclugage",
+      "name": "McClugage Bridge",
+      "lon": -89.5468,
+      "lat": 40.7379,
+      "category": "landmark"
+    }
+  ],
+  "dataSources": [
+    {
+      "name": "USGS 3D Elevation Program (3DEP) Bare-Earth DEM",
+      "kind": "measured",
+      "url": "https://www.usgs.gov/the-national-map-data-delivery/gis-data-download",
+      "acquisitionDate": "2026-11-25",
+      "extent": "20.0km x 25.0km around (40.72, -89.58)",
+      "resolution": "25m balanced / 100m overview resampled from 20m export",
+      "crs": "EPSG:26916",
+      "datum": "NAVD88 (meters)",
+      "license": "Public Domain (U.S. Geological Survey)",
+      "attribution": "U.S. Geological Survey, 3D Elevation Program (3DEP)"
+    },
+    {
+      "name": "OpenStreetMap Infrastructure, Hydrology & Landcover",
+      "kind": "measured",
+      "url": "https://www.openstreetmap.org/copyright",
+      "acquisitionDate": "2026-11-25",
+      "extent": "[-89.698, 40.607, -89.462, 40.833]",
+      "resolution": "Vector footprints & polylines; missing building heights marked heightEstimated=true",
+      "crs": "EPSG:4326 -> EPSG:26916",
+      "license": "ODbL 1.0",
+      "attribution": "\u00a9 OpenStreetMap contributors"
+    },
+    {
+      "name": "Open-Meteo Weather API",
+      "kind": "inferred",
+      "url": "https://open-meteo.com/en/docs",
+      "acquisitionDate": "Live runtime fetch",
+      "extent": "Point sample at (40.72, -89.58)",
+      "resolution": "Modeled atmospheric forecast/analysis",
+      "crs": "WGS84",
+      "license": "CC BY 4.0",
+      "attribution": "Weather data by Open-Meteo.com"
+    }
+  ],
+  "processingSummary": {
+    "processedAtUtc": "2026-11-25T17:39:32.067830+00:00",
+    "vectorCounts": {
+      "waterBodies": 627,
+      "waterways": 1237,
+      "roads": 15954,
+      "railways": 392,
+      "bridges": 444,
+      "buildings": 24000,
+      "buildingsTotalExtracted": 76928,
+      "landcoverAreas": 1621
+    }
+  },
+  "assetIntegrity": {
+    "algorithm": "sha256",
+    "assets": {
+      "bridges.json": {
+        "bytes": 73943,
+        "sha256": "83beea33b747f315962ae2540c7e0ff2d2cc2a8a83c61a601cace3329e1b2b8d"
+      },
+      "buildings.json": {
+        "bytes": 8676212,
+        "sha256": "bf4eda6d717d286d6c30701cd6ac094e71097a0fb261c6d32dc8ddd0d2c7ec25"
+      },
+      "hydrology.json": {
+        "bytes": 785741,
+        "sha256": "4dac36d5bc5e452e0d842c50e3d720d3719443b1831ba1bebc1ef06980e1b54f"
+      },
+      "landcover.json": {
+        "bytes": 710935,
+        "sha256": "5f466a5a4fb2acbe56d3da0c275c048a96ac2ebed98f1006e6678fd14385a15a"
+      },
+      "railways.json": {
+        "bytes": 61494,
+        "sha256": "90cd71fd4d6298bfdb956ae6b51db3057fb3604863ae3650cb8c1c1a52185678"
+      },
+      "roads.json": {
+        "bytes": 2861387,
+        "sha256": "1184b29674377c9bacedbf2dc1b9ddd6b7131bf8045942f1a9a1562dd0027c52"
+      },
+      "terrain_balanced.bin": {
+        "bytes": 1603602,
+        "sha256": "ce87647d9f79c40d4f9411db263d3f7309e537ee37172f2c13c2685fcc9642f7"
+      },
+      "terrain_overview.bin": {
+        "bytes": 100902,
+        "sha256": "62d563fe8d74b563527ce803ed7b87ae1d11807817b1ecab588b0974769c0075"
+      }
+    }
+  }
+}

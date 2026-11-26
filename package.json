@@ -1,0 +1,30 @@
+{
+  "name": "microcosm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Geographically anchored procedural environmental terrarium — Greater Peoria & Illinois River Valley",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "geo:import": "tools\\.venv\\Scripts\\python.exe -m tools.import_region --region peoria-il",
+    "geo:fixture": "tools\\.venv\\Scripts\\python.exe -m tools.build_fixture",
+    "geo:verify": "tools\\.venv\\Scripts\\python.exe -m tools.verify_region --region peoria-il"
+  },
+  "dependencies": {
+    "astronomy-engine": "2.1.19",
+    "proj4": "2.23.0",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.10",
+    "@types/three": "0.187.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.2"
+  }
+}
