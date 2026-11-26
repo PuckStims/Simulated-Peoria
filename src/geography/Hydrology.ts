@@ -140,6 +140,7 @@ export class HydrologySystem {
       fragmentShader: WATER_FRAGMENT_SHADER,
       transparent: true,
       depthWrite: true,
+      side: THREE.FrontSide,
     });
 
     this.wetlandMaterial = new THREE.MeshStandardMaterial({
@@ -250,7 +251,8 @@ export class HydrologySystem {
           const b = a + 1;
           const c = a + 2;
           const d = a + 3;
-          indices.push(a, c, b, b, c, d);
+          // Keep ribbon faces upward (+Y) for normal backface culling.
+          indices.push(a, b, c, b, d, c);
         }
         vertOffset += way.points.length * 2;
       }

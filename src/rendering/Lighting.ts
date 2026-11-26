@@ -13,9 +13,11 @@ export class LightingSystem {
   readonly sunLight: THREE.DirectionalLight;
   readonly moonLight: THREE.DirectionalLight;
   readonly hemiLight: THREE.HemisphereLight;
+  readonly inspectionLight: THREE.DirectionalLight;
   readonly sunColor = new THREE.Color(0xfff4df);
   private readonly lightDistance = 26000;
   private shadowsEnabled = true;
+  private daylightMode = false;
 
   constructor() {
     this.group.name = 'LightingSystem';
@@ -38,6 +40,13 @@ export class LightingSystem {
 
     this.hemiLight = new THREE.HemisphereLight(0x9dc2e6, 0x3b3831, 0.65);
     this.group.add(this.hemiLight);
+
+    // Independent neutral fill for inspection. The authoritative sun remains
+    // present and continuously follows EphemerisEngine's solarDirection.
+    this.inspectionLight = new THREE.DirectionalLight(0xffffff, 0);
+    this.inspectionLight.position.set(-9000, 14000, 7000);
+    this.inspectionLight.castShadow = false;
+    this.group.add(this.inspectionLight);
   }
 
   setShadowSpan(halfSpanMeters: number): void {
@@ -59,6 +68,10 @@ export class LightingSystem {
         this.sunLight.shadow.map = null;
       }
     }
+  }
+
+  setDaylightMode(enabled: boolean): void {
+    this.daylightMode = enabled;
   }
 
   update(
@@ -109,6 +122,13 @@ export class LightingSystem {
     this.hemiLight.color.copy(skyColor).lerp(new THREE.Color(0xd0e2f2), 0.35 * horizonFactor);
     this.hemiLight.groundColor.setHex(0x2a2722).lerp(new THREE.Color(0x4c483d), horizonFactor);
     this.hemiLight.intensity = dayHemi;
+
+    this.inspectionLight.intensity = this.daylightMode ? 1.35 : 0;
+    if (this.daylightMode) {
+      this.hemiLight.color.setHex(0xcfe2f2);
+      this.hemiLight.groundColor.setHex(0x60605a);
+      this.hemiLight.intensity = Math.max(this.hemiLight.intensity, 1.05);
+    }
   }
 
   dispose(): void {

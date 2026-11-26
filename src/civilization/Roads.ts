@@ -85,7 +85,9 @@ function buildRibbonMesh(
       const b = a + 1;
       const c = a + 2;
       const d = a + 3;
-      indices.push(a, c, b, b, c, d);
+      // The strip is built left/right along +X/+Z. This ordering produces +Y
+      // facing triangles; the old a,c,b ordering made every ribbon backface.
+      indices.push(a, b, c, b, d, c);
     }
     vertOffset += dense.length * 2;
   }
@@ -133,33 +135,33 @@ export class RoadNetworkSystem {
     }
 
     const majorMat = new THREE.MeshStandardMaterial({
-      color: 0xc2b38e,
+      color: 0xd8c18b,
       roughness: 0.96,
       metalness: 0.0,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.9,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -1,
     });
     const minorMat = new THREE.MeshStandardMaterial({
-      color: 0xe0d7bd,
+      color: 0xcfc5a5,
       roughness: 1.0,
       metalness: 0.0,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.62,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -1,
     });
     const railMat = new THREE.MeshStandardMaterial({
-      color: 0x9e7654,
+      color: 0x5d3d2a,
       roughness: 0.95,
       metalness: 0.0,
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.88,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -1,
@@ -167,10 +169,11 @@ export class RoadNetworkSystem {
     });
     this.materials.push(majorMat, minorMat, railMat);
 
-    const majorMesh = buildRibbonMesh(majorLines, terrainData, 0.55, majorMat, 'Roads_Major');
-    const minorMesh = buildRibbonMesh(minorLines, terrainData, 0.4, minorMat, 'Roads_Minor');
+    // Display widths are cartographic only; source widths stay intact for routing.
+    const majorMesh = buildRibbonMesh(majorLines.map((line) => ({ ...line, width: Math.max(line.width, 16) })), terrainData, 0.6, majorMat, 'Roads_Major');
+    const minorMesh = buildRibbonMesh(minorLines.map((line) => ({ ...line, width: Math.max(line.width, 7) })), terrainData, 0.45, minorMat, 'Roads_Minor');
     const railMesh = buildRibbonMesh(
-      railwaysPayload.railways.map((r) => ({ width: 4.5, points: r.points })),
+      railwaysPayload.railways.map((r) => ({ width: 6.5, points: r.points })),
       terrainData,
       0.65,
       railMat,

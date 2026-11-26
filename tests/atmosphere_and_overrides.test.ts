@@ -13,6 +13,9 @@ import { RealityStore } from '../src/state/Reality';
 import { saveScenario, listScenarios } from '../src/state/Persistence';
 import { SurfaceStateModel } from '../src/ecology/SurfaceState';
 import { TerrainData } from '../src/geography/TerrainData';
+import { celsiusToFahrenheit, fahrenheitToCelsius, formatFahrenheit } from '../src/core/Temperature';
+import { LightingSystem } from '../src/rendering/Lighting';
+import { TransportRegistry } from '../src/transportation/simulation/TransportRegistry';
 import type { RegionConfig, SavedScenario } from '../src/core/types';
 
 const fixtureRoot = resolve(process.cwd(), 'public/regions/test-fixture');
@@ -50,6 +53,49 @@ class MemoryStorage implements Storage {
 }
 
 describe('Atmospheric, Override, and Persistence Integrity', () => {
+  it('converts Fahrenheit only at presentation boundaries', () => {
+    expect(celsiusToFahrenheit(0)).toBe(32);
+    expect(fahrenheitToCelsius(32)).toBe(0);
+    expect(fahrenheitToCelsius(celsiusToFahrenheit(21.5))).toBeCloseTo(21.5, 10);
+    expect(formatFahrenheit(20)).toBe('68.0°F');
+  });
+
+  it('preserves transport provenance and suppresses procedural duplicates near observations', () => {
+    const registry = new TransportRegistry();
+    registry.setMode('road', 'hybrid');
+    registry.replaceObserved([{ id: 'real-1', domain: 'road', vehicleClass: 'car', longitude: -89.6, latitude: 40.7, localPosition: { x: 10, z: 10 }, observedAtMs: 1_000, provider: 'test', provenance: 'observed', observationConfidence: 1, stale: false, interpolated: false }], 2_000);
+    registry.addProcedural([
+      { id: 'duplicate', domain: 'road', vehicleClass: 'car', longitude: -89.6, latitude: 40.7, localPosition: { x: 20, z: 20 }, observedAtMs: 2_000, provider: 'sim', provenance: 'procedural', observationConfidence: 0.5, stale: false, interpolated: false },
+      { id: 'other', domain: 'road', vehicleClass: 'truck', longitude: -89.6, latitude: 40.7, localPosition: { x: 300, z: 300 }, observedAtMs: 2_000, provider: 'sim', provenance: 'procedural', observationConfidence: 0.5, stale: false, interpolated: false },
+    ]);
+    expect(registry.getActive().map((entity) => entity.id)).toEqual(['real-1', 'other']);
+  });
+
+  it('keeps daylight inspection lighting independent of the authoritative sun', () => {
+    const lighting = new LightingSystem();
+    const solarDirection: [number, number, number] = [0.15, -0.95, 0.27];
+    const astro = {
+      solarDirection,
+      solarAltitudeRad: -0.8,
+      lunarDirection: [0, 1, 0],
+      lunarAltitudeRad: -0.2,
+      lunarIllumination: 0,
+    } as unknown as import('../src/core/types').AstronomicalState;
+    const env = { cloudCoverTotal: 0.2 } as import('../src/core/types').EffectiveEnvironmentState;
+    const target = new THREE.Vector3(20, 5, -30);
+    lighting.setDaylightMode(true);
+    lighting.update(astro, env, target, new THREE.Color(0x101820));
+    expect(lighting.inspectionLight.intensity).toBeGreaterThan(1);
+    const actualDirection = lighting.sunLight.position.clone().sub(target).normalize();
+    const expectedDirection = new THREE.Vector3(...solarDirection).normalize();
+    expect(actualDirection.x).toBeCloseTo(expectedDirection.x, 8);
+    expect(actualDirection.y).toBeCloseTo(expectedDirection.y, 8);
+    expect(actualDirection.z).toBeCloseTo(expectedDirection.z, 8);
+    expect(solarDirection).toEqual([0.15, -0.95, 0.27]);
+    lighting.setDaylightMode(false);
+    lighting.update(astro, env, target, new THREE.Color(0x101820));
+    expect(lighting.inspectionLight.intensity).toBe(0);
+  });
   it('interprets meteorological wind direction (origin) into travel vectors correctly', () => {
     const [nx, nz] = windFromDegToTravelUnit(0); // From North -> South (+Z)
     expect(Math.abs(nx)).toBeLessThan(1e-6);

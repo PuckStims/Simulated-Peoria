@@ -10,7 +10,14 @@ import type { AstronomicalState, RegionConfig } from '../core/types';
 export interface BuildingRecord {
   id: string;
   name?: string;
-  kind: 'residential' | 'commercial' | 'industrial' | 'civic' | 'landmark';
+  /** Legacy coarse import class retained for backwards-compatible region bundles. */
+  kind: 'residential' | 'commercial' | 'industrial' | 'civic' | 'landmark' | 'unknown';
+  functionCategory?: BuildingFunctionCategory;
+  subcategory?: string;
+  address?: string;
+  occupants?: string[];
+  osmTags?: Record<string, string>;
+  classificationConfidence?: 'high' | 'medium' | 'low' | 'unknown';
   footprint: [number, number][];
   baseElevationMeters: number;
   heightMeters: number;
@@ -19,24 +26,53 @@ export interface BuildingRecord {
   roofShape: 'flat' | 'gabled' | 'hipped';
 }
 
+export type BuildingFunctionCategory =
+  | 'residential' | 'apartments' | 'medical' | 'emergency-medical' | 'retail'
+  | 'restaurant' | 'education' | 'government' | 'industrial' | 'warehouse'
+  | 'recreation' | 'hospitality' | 'religious' | 'transportation' | 'unknown';
+export type BuildingVisualizationMode = 'natural' | 'functional' | 'selective';
+
 export interface BuildingsPayload {
   provenance: Record<string, unknown>;
   buildings: BuildingRecord[];
 }
 
-const KIND_COLORS: Record<string, number> = {
+const NATURAL_COLORS: Record<string, number> = {
   residential: 0xc8bfb2,
   commercial: 0xaab4bf,
   industrial: 0x8e9296,
   civic: 0xd4c9b8,
   landmark: 0xc2b29b,
+  unknown: 0x9b9b9b,
 };
+
+export const BUILDING_FUNCTION_COLORS: Record<BuildingFunctionCategory, number> = {
+  residential: 0xd7c49b, apartments: 0xbd9e68, medical: 0x4ba9a0, 'emergency-medical': 0x126f72,
+  retail: 0xd6ae3f, restaurant: 0xd78d31, education: 0x8d99de, government: 0xaa94c8,
+  industrial: 0x687583, warehouse: 0x43505d, recreation: 0x8aa779, hospitality: 0xc98778,
+  religious: 0x9276a8, transportation: 0x638ca9, unknown: 0x8d9194,
+};
+
+function categoryFor(building: BuildingRecord): BuildingFunctionCategory {
+  if (building.functionCategory) return building.functionCategory;
+  switch (building.kind) {
+    case 'residential': return 'residential';
+    case 'commercial': return 'retail';
+    case 'industrial': return 'industrial';
+    case 'civic': return 'government';
+    case 'landmark': return 'recreation';
+    default: return 'unknown';
+  }
+}
 
 export class BuildingSystem {
   readonly group = new THREE.Group();
   private readonly meshes: THREE.Mesh[] = [];
   private readonly materials = new Map<string, THREE.MeshStandardMaterial>();
+  private readonly categories = new Map<string, BuildingFunctionCategory>();
   private readonly datumMeters: number;
+  private visualizationMode: BuildingVisualizationMode = 'natural';
+  private selectedCategories: ReadonlySet<BuildingFunctionCategory> | null = null;
 
   constructor(config: RegionConfig, payload: BuildingsPayload) {
     this.group.name = 'BuildingSystem';
@@ -46,7 +82,7 @@ export class BuildingSystem {
 
   private buildBatchedBuildings(buildings: BuildingRecord[]): void {
     const buckets = new Map<string, THREE.BufferGeometry[]>();
-    for (const key of Object.keys(KIND_COLORS)) {
+    for (const key of Object.keys(BUILDING_FUNCTION_COLORS)) {
       buckets.set(key, []);
     }
 
@@ -74,7 +110,7 @@ export class BuildingSystem {
       extrude.dispose();
       nonIndexed.deleteAttribute('uv');
 
-      const bucketKey = KIND_COLORS[b.kind] ? b.kind : 'residential';
+      const bucketKey = categoryFor(b);
       buckets.get(bucketKey)!.push(nonIndexed);
     }
 
@@ -85,13 +121,14 @@ export class BuildingSystem {
       if (!merged) continue;
 
       const mat = new THREE.MeshStandardMaterial({
-        color: KIND_COLORS[kind],
-        roughness: kind === 'commercial' ? 0.62 : 0.84,
-        metalness: kind === 'commercial' ? 0.14 : 0.04,
-        emissive: new THREE.Color(kind === 'commercial' || kind === 'civic' ? 0xffb86b : 0xffa652),
+        color: BUILDING_FUNCTION_COLORS[kind as BuildingFunctionCategory],
+        roughness: kind === 'retail' ? 0.62 : 0.84,
+        metalness: kind === 'retail' ? 0.14 : 0.04,
+        emissive: new THREE.Color(kind === 'retail' || kind === 'government' ? 0xffb86b : 0xffa652),
         emissiveIntensity: 0.0,
       });
       this.materials.set(kind, mat);
+      this.categories.set(kind, kind as BuildingFunctionCategory);
 
       const mesh = new THREE.Mesh(merged, mat);
       mesh.name = `Buildings_${kind}`;
@@ -99,6 +136,31 @@ export class BuildingSystem {
       mesh.receiveShadow = true;
       this.group.add(mesh);
       this.meshes.push(mesh);
+    }
+    this.applyPresentation();
+  }
+
+  setVisualizationMode(mode: BuildingVisualizationMode): void {
+    this.visualizationMode = mode;
+    this.applyPresentation();
+  }
+
+  setSelectedCategories(categories: Iterable<BuildingFunctionCategory> | null): void {
+    this.selectedCategories = categories ? new Set(categories) : null;
+    this.applyPresentation();
+  }
+
+  private applyPresentation(): void {
+    for (const [key, mat] of this.materials) {
+      const category = this.categories.get(key)!;
+      const selected = !this.selectedCategories || this.selectedCategories.has(category);
+      const natural = NATURAL_COLORS[category === 'retail' || category === 'restaurant' || category === 'hospitality' ? 'commercial' : category === 'government' || category === 'education' || category === 'medical' || category === 'emergency-medical' || category === 'religious' ? 'civic' : category] ?? NATURAL_COLORS.unknown;
+      mat.color.setHex(this.visualizationMode === 'natural' ? natural : BUILDING_FUNCTION_COLORS[category]);
+      // Selective mode deliberately recedes unrelated batches without removing their context.
+      mat.transparent = this.visualizationMode === 'selective' && !selected;
+      mat.opacity = this.visualizationMode === 'selective' && !selected ? 0.12 : 1;
+      mat.depthWrite = mat.opacity >= 1;
+      mat.needsUpdate = true;
     }
   }
 

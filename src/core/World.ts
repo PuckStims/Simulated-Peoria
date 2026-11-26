@@ -33,6 +33,7 @@ import { DioramaScene, type RegionAssets } from '../rendering/Diorama';
 import { CameraController } from '../rendering/Camera';
 import { MicrocosmRenderer } from '../rendering/Renderer';
 import { applyBenchmarkScenario } from './Benchmarks';
+import type { BuildingFunctionCategory, BuildingVisualizationMode } from '../civilization/Buildings';
 
 export interface WorldSnapshot {
   config: RegionConfig;
@@ -49,6 +50,7 @@ export interface WorldSnapshot {
   fps: number;
   diagnostics: PerformanceDiagnostics;
   activeBenchmark: BenchmarkScenarioId | null;
+  daylightMode: boolean;
 }
 
 export type WorldEvents = {
@@ -67,7 +69,8 @@ export class MicrocosmWorld {
   readonly cameraCtrl: CameraController;
   readonly renderer: MicrocosmRenderer;
 
-  private verticalExaggeration = 1.0;
+  private verticalExaggeration = 2.0;
+  private daylightMode = false;
   private rafId = 0;
   private lastFrameMs = 0;
   private elapsedSeconds = 0;
@@ -278,6 +281,7 @@ export class MicrocosmWorld {
       fps: this.fps,
       diagnostics: { ...this.diagnostics },
       activeBenchmark: this.activeBenchmark,
+      daylightMode: this.daylightMode,
     };
   }
 
@@ -310,6 +314,17 @@ export class MicrocosmWorld {
     this.emitSnapshot();
   }
 
+  setDaylightMode(enabled: boolean): void {
+    this.daylightMode = enabled;
+    this.diorama.setDaylightMode(enabled);
+    this.emitSnapshot();
+  }
+
+  setBuildingVisualization(mode: BuildingVisualizationMode, categories: Iterable<BuildingFunctionCategory> | null = null): void {
+    this.diorama.setBuildingVisualization(mode, categories);
+    this.emitSnapshot();
+  }
+
   getVerticalExaggeration(): number {
     return this.verticalExaggeration;
   }
@@ -321,7 +336,8 @@ export class MicrocosmWorld {
 
   restoreAllToReality(): void {
     this.overrides.restoreAllToLive(Date.now());
-    this.verticalExaggeration = 1.0;
+    this.verticalExaggeration = 2.0;
+    this.setDaylightMode(false);
     this.activeBenchmark = null;
     this.emitSnapshot();
   }
@@ -353,7 +369,7 @@ export class MicrocosmWorld {
   applyScenario(scenario: SavedScenario): void {
     this.overrides.setState(scenario.overrides);
     this.surfaceModel.setState(scenario.surface);
-    this.verticalExaggeration = scenario.verticalExaggeration ?? 1.0;
+    this.verticalExaggeration = scenario.verticalExaggeration ?? 2.0;
     this.lastSurface = this.surfaceModel.getState();
     this.emitSnapshot();
   }

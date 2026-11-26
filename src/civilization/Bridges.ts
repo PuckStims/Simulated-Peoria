@@ -34,7 +34,6 @@ export class BridgeSystem {
       color: 0x868c94,
       roughness: 0.78,
       metalness: 0.14,
-      side: THREE.DoubleSide,
     });
     this.pierMat = new THREE.MeshStandardMaterial({
       color: 0x6c727a,
@@ -88,7 +87,8 @@ export class BridgeSystem {
         const b = a + 1;
         const c = a + 2;
         const d = a + 3;
-        indices.push(a, c, b, b, c, d);
+        // Upward-facing deck: do not hide a winding defect with DoubleSide.
+        indices.push(a, b, c, b, d, c);
       }
       vertOffset += br.points.length * 2;
     }
@@ -99,6 +99,7 @@ export class BridgeSystem {
       geom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
       geom.setIndex(indices);
       this.deckMesh = new THREE.Mesh(geom, this.deckMat);
+      this.deckMesh.name = 'BridgeDecks';
       this.deckMesh.castShadow = true;
       this.deckMesh.receiveShadow = true;
       this.group.add(this.deckMesh);

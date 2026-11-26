@@ -56,6 +56,7 @@ BUILDING_DEFAULT_HEIGHTS = {
     "industrial": (11.0, 2),
     "civic": (15.0, 3),
     "residential": (7.2, 2),
+    "unknown": (7.2, 2),
 }
 
 
@@ -296,7 +297,27 @@ def _classify_building(tags: Dict[str, str]) -> str:
         return "commercial"
     if b in {"school", "university", "public", "government", "train_station"} or tags.get("amenity") in {"school", "hospital", "university", "townhall"}:
         return "civic"
-    return "residential"
+    return "unknown"
+
+
+def _classify_building_function(tags: Dict[str, str], coarse_kind: str) -> Tuple[str, str]:
+    """Conservative semantic class: unknown stays unknown rather than residential."""
+    amenity, building = tags.get("amenity", ""), tags.get("building", "")
+    if amenity in {"hospital", "clinic", "doctors"}: return ("medical", amenity)
+    if amenity in {"ambulance_station", "emergency_service"}: return ("emergency-medical", amenity)
+    if amenity in {"school", "college", "university", "kindergarten", "library"}: return ("education", amenity)
+    if amenity in {"restaurant", "cafe", "fast_food", "bar", "pub"}: return ("restaurant", amenity)
+    if amenity in {"townhall", "courthouse", "police", "fire_station", "post_office"} or building in {"government", "civic"}: return ("government", amenity or building)
+    if amenity in {"place_of_worship"} or building in {"church", "cathedral", "mosque", "synagogue"}: return ("religious", building)
+    if tags.get("railway") == "station" or amenity in {"bus_station", "ferry_terminal"}: return ("transportation", amenity)
+    if building in {"warehouse", "hangar"}: return ("warehouse", building)
+    if building in {"apartments", "dormitory"}: return ("apartments", building)
+    if building in {"hotel", "hostel"} or tags.get("tourism") in {"hotel", "motel", "guest_house"}: return ("hospitality", building)
+    if tags.get("leisure") or tags.get("tourism") in {"museum", "attraction"}: return ("recreation", tags.get("leisure") or tags.get("tourism", ""))
+    if tags.get("shop") or building in {"retail", "supermarket", "commercial"}: return ("retail", tags.get("shop", building))
+    if building in {"industrial", "factory", "manufacture"}: return ("industrial", building)
+    if coarse_kind == "residential": return ("residential", building)
+    return ("unknown", building or amenity)
 
 
 def _classify_landcover(tags: Dict[str, str]) -> Optional[str]:
@@ -496,6 +517,7 @@ def prepare_vectors_from_osm(
     for el in osm_layers.get("buildings", {}).get("elements", []):
         tags = el.get("tags", {})
         kind = _classify_building(tags)
+        function_category, subcategory = _classify_building_function(tags, kind)
         parsed_h, parsed_lv = _parse_height_meters(tags)
         default_h, default_lv = BUILDING_DEFAULT_HEIGHTS[kind]
         if parsed_h is not None:
@@ -532,6 +554,12 @@ def prepare_vectors_from_osm(
                     "id": f"bld-{el['id']}-{idx}",
                     "name": tags.get("name", ""),
                     "kind": kind,
+                    "functionCategory": function_category,
+                    "subcategory": subcategory,
+                    "address": " ".join(filter(None, [tags.get("addr:housenumber"), tags.get("addr:street"), tags.get("addr:city")])),
+                    "occupants": [tags["operator"]] if tags.get("operator") else [],
+                    "osmTags": {k: v for k, v in tags.items() if k in {"amenity", "building", "shop", "tourism", "operator", "addr:housenumber", "addr:street", "addr:city"}},
+                    "classificationConfidence": "high" if tags.get("amenity") or tags.get("shop") or tags.get("building") not in {"", "yes"} else "low",
                     "footprint": _ring_coords(poly.exterior),
                     "baseElevationMeters": round(base_elev, 2),
                     "heightMeters": round(height_m, 2),

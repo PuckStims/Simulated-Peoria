@@ -12,6 +12,7 @@ export class FogSystem {
   private readonly valleyMistMesh: THREE.Mesh;
   private readonly mistMat: THREE.ShaderMaterial;
   private quality: GraphicsQuality = 'balanced';
+  private daylightMode = false;
 
   constructor(config: RegionConfig, terrainData: TerrainData) {
     this.group.name = 'FogSystem';
@@ -105,6 +106,10 @@ export class FogSystem {
     this.quality = quality;
   }
 
+  setDaylightMode(enabled: boolean): void {
+    this.daylightMode = enabled;
+  }
+
   update(
     elapsedSeconds: number,
     astro: AstronomicalState,
@@ -117,13 +122,13 @@ export class FogSystem {
 
     // Keep distant visibility crisp when clear, denser under fog/haze
     const baseDensity = 0.000004 + env.fogDensity * 0.000085;
-    this.sceneFog.density = baseDensity * (this.quality === 'low' ? 0.8 : 1);
+    this.sceneFog.density = baseDensity * (this.quality === 'low' ? 0.8 : 1) * (this.daylightMode ? 0.35 : 1);
 
     this.mistMat.uniforms.uTime.value = elapsedSeconds;
     this.mistMat.uniforms.uWindVec.value.set(env.windVector[0], env.windVector[1]);
     this.mistMat.uniforms.uMistFactor.value = env.valleyMistFactor;
     this.mistMat.uniforms.uColor.value.copy(fogColor).lerp(new THREE.Color(0xdde6ee), 0.35 * dayT);
-    this.valleyMistMesh.visible = env.valleyMistFactor > (this.quality === 'low' ? 0.1 : 0.03);
+    this.valleyMistMesh.visible = !this.daylightMode && env.valleyMistFactor > (this.quality === 'low' ? 0.1 : 0.03);
   }
 
   dispose(): void {

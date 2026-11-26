@@ -9,6 +9,7 @@ import { formatRegionalTime } from '../core/Clock';
 import type { MicrocosmWorld, WorldSnapshot } from '../core/World';
 import { formatCompassBearing } from '../atmosphere/Wind';
 import { GodmodePanel } from './GodmodePanel';
+import { formatFahrenheit } from '../core/Temperature';
 
 export class HudView {
   readonly root: HTMLElement;
@@ -30,6 +31,8 @@ export class HudView {
   private orthoBtn!: HTMLButtonElement;
   private landmarksBtn!: HTMLButtonElement;
   private qualitySelect!: HTMLSelectElement;
+  private buildingModeSelect!: HTMLSelectElement;
+  private buildingCategorySelect!: HTMLSelectElement;
   private benchmarkSelect!: HTMLSelectElement;
   private godmodeBtn!: HTMLButtonElement;
   private modalEl!: HTMLDivElement;
@@ -68,7 +71,7 @@ export class HudView {
           <span class="badge badge-modeled" data-el="astro-mode">LIVE</span>
         </div>
         <div class="weather-row">
-          <span data-el="weather-str">--°C · Calm</span>
+          <span data-el="weather-str">--°F · Calm</span>
           <span class="badge badge-modeled" title="Atmospheric output from Open-Meteo model">Modeled</span>
         </div>
         <div class="sync-strip">
@@ -99,6 +102,19 @@ export class HudView {
         <button class="mini-btn" data-action="north-btn" title="Return to True North (N)">North</button>
         <button class="mini-btn" data-action="ortho" title="Perspective / Orthographic (O)">Persp</button>
         <button class="mini-btn" data-action="landmarks" title="Toggle Landmark Labels (L)">Labels</button>
+        <button class="mini-btn" data-action="daylight" title="Neutral inspection light; does not change simulation time">Daylight: Off</button>
+        <select data-el="building-mode" title="Building visualization mode">
+          <option value="natural">Buildings: Natural</option>
+          <option value="functional">Buildings: Functional</option>
+          <option value="selective">Buildings: Selective</option>
+        </select>
+        <select data-el="building-category" title="Selective category and compact color legend">
+          <option value="">All functions</option>
+          <option value="medical">Medical (teal)</option><option value="emergency-medical">Emergency medical (deep teal)</option>
+          <option value="retail">Retail (gold)</option><option value="education">Education (periwinkle)</option>
+          <option value="industrial">Industrial (slate)</option><option value="transportation">Transport (steel blue)</option>
+          <option value="residential">Residential (sand)</option><option value="unknown">Unknown (grey)</option>
+        </select>
         <select data-el="quality-select" title="Graphics Quality">
           <option value="low">Low</option>
           <option value="balanced" selected>Balanced</option>
@@ -138,6 +154,8 @@ export class HudView {
     this.orthoBtn = q('[data-action="ortho"]');
     this.landmarksBtn = q('[data-action="landmarks"]');
     this.qualitySelect = q('[data-el="quality-select"]');
+    this.buildingModeSelect = q('[data-el="building-mode"]');
+    this.buildingCategorySelect = q('[data-el="building-category"]');
     this.benchmarkSelect = q('[data-el="benchmark-select"]');
     this.godmodeBtn = q('[data-action="godmode"]');
     this.modalEl = q('[data-el="sources-modal"]');
@@ -162,11 +180,23 @@ export class HudView {
       this.landmarksLayer.style.display = this.showLandmarks ? 'block' : 'none';
       this.landmarksBtn.textContent = this.showLandmarks ? 'Labels: On' : 'Labels: Off';
     });
+    q('[data-action="daylight"]').addEventListener('click', () => {
+      this.world.setDaylightMode(!this.world.getSnapshot().daylightMode);
+    });
     this.landmarksBtn.textContent = 'Labels: On';
 
     this.qualitySelect.addEventListener('change', () => {
       this.world.setQuality(this.qualitySelect.value as GraphicsQuality);
     });
+    const applyBuildingPresentation = () => {
+      const category = this.buildingCategorySelect.value;
+      this.world.setBuildingVisualization(
+        this.buildingModeSelect.value as import('../civilization/Buildings').BuildingVisualizationMode,
+        category ? [category as import('../civilization/Buildings').BuildingFunctionCategory] : null
+      );
+    };
+    this.buildingModeSelect.addEventListener('change', applyBuildingPresentation);
+    this.buildingCategorySelect.addEventListener('change', applyBuildingPresentation);
     this.benchmarkSelect.addEventListener('change', () => {
       const id = this.benchmarkSelect.value;
       if (id) this.world.applyBenchmarkScenario(id as 'clear-noon' | 'rain-storm' | 'winter-snow');
@@ -308,7 +338,7 @@ export class HudView {
       snap.env.precipitationType === 'none'
         ? ''
         : ` · ${snap.env.precipitationType.toUpperCase()}`;
-    this.weatherEl.textContent = `${snap.env.temperatureC.toFixed(1)}°C · Wind ${windDir} ${snap.env.windSpeedMs.toFixed(1)} m/s · Clouds ${cloudPct}%${precipStr}`;
+    this.weatherEl.textContent = `${formatFahrenheit(snap.env.temperatureC)} · Wind ${windDir} ${snap.env.windSpeedMs.toFixed(1)} m/s · Clouds ${cloudPct}%${precipStr}`;
 
     const anyManual = this.world.overrides.isAnyManual();
     if (anyManual) {
@@ -325,6 +355,9 @@ export class HudView {
     this.compassNeedleEl.style.transform = `rotate(${-snap.compassHeadingDeg}deg)`;
     this.orbitBtn.textContent = snap.autoOrbit ? 'Orbiting' : 'Orbit';
     this.orthoBtn.textContent = snap.cameraMode === 'perspective' ? 'Persp' : 'Ortho';
+    const daylightButton = this.root.querySelector<HTMLButtonElement>('[data-action="daylight"]')!;
+    daylightButton.textContent = snap.daylightMode ? 'Daylight: On' : 'Daylight: Off';
+    daylightButton.classList.toggle('active', snap.daylightMode);
     this.qualitySelect.value = snap.quality;
     this.benchmarkSelect.value = snap.activeBenchmark ?? '';
     if (this.modalEl.classList.contains('open') && this.modalEl.dataset.mode === 'diagnostics') {

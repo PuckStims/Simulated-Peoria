@@ -8,6 +8,7 @@ import type { PrecipitationType, SyncChannelName } from '../core/types';
 import { formatRegionalTime, regionalWallClockToUtcMs } from '../core/Clock';
 import type { MicrocosmWorld, WorldSnapshot } from '../core/World';
 import { formatCompassBearing } from '../atmosphere/Wind';
+import { celsiusToFahrenheit, fahrenheitToCelsius, formatFahrenheit } from '../core/Temperature';
 import { computeSeasonalPhenology } from '../ecology/Seasons';
 
 export class GodmodePanel {
@@ -142,8 +143,8 @@ export class GodmodePanel {
           </div>
           <div class="control-row">
             <label>Air Temp</label>
-            <input type="range" min="-25" max="40" step="0.5" data-field="temp" />
-            <span class="val-mono" data-val="temp">12°C</span>
+            <input type="range" min="-13" max="104" step="1" data-field="temp" />
+            <span class="val-mono" data-val="temp">54°F</span>
           </div>
         </div>
 
@@ -299,7 +300,7 @@ export class GodmodePanel {
     this.windDirRange.addEventListener('input', applyWind);
 
     this.tempRange.addEventListener('input', () => {
-      this.world.overrides.setTemperatureManual(Number(this.tempRange.value));
+      this.world.overrides.setTemperatureManual(fahrenheitToCelsius(Number(this.tempRange.value)));
       this.world.emitSnapshot();
     });
 
@@ -415,8 +416,8 @@ export class GodmodePanel {
     this.windDirRange.value = String(wDeg);
     this.windDirVal.textContent = `${wDeg}° ${formatCompassBearing(wDeg)}`;
 
-    this.tempRange.value = snap.env.temperatureC.toFixed(1);
-    this.tempVal.textContent = `${snap.env.temperatureC.toFixed(1)}°C`;
+    this.tempRange.value = String(Math.round(celsiusToFahrenheit(snap.env.temperatureC)));
+    this.tempVal.textContent = formatFahrenheit(snap.env.temperatureC);
 
     const phenology = computeSeasonalPhenology(
       snap.astro.dayOfYear,

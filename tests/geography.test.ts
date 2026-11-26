@@ -11,6 +11,10 @@ import type { HydrologyPayload } from '../src/geography/Hydrology';
 import type { BridgesPayload } from '../src/civilization/Bridges';
 import type { BuildingsPayload } from '../src/civilization/Buildings';
 import { HydrologySystem } from '../src/geography/Hydrology';
+import { RoadNetworkSystem, type RailwaysPayload, type RoadsPayload } from '../src/civilization/Roads';
+import { BridgeSystem } from '../src/civilization/Bridges';
+import { SurfaceResolver } from '../src/geography/SurfaceResolver';
+import { buildPolylineNetwork, motorVehicleEdges } from '../src/transportation/networks/PolylineNetwork';
 
 const fixtureRoot = resolve(process.cwd(), 'public/regions/test-fixture');
 const fixtureConfig = JSON.parse(
@@ -22,6 +26,17 @@ function loadFixtureTerrain(): TerrainData {
   const buf = readFileSync(resolve(fixtureRoot, level.file));
   const arrayBuf = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
   return new TerrainData(fixtureConfig, level, arrayBuf);
+}
+
+function expectUpwardFacing(mesh: THREE.Mesh): void {
+  const geometry = mesh.geometry as THREE.BufferGeometry;
+  const position = geometry.getAttribute('position') as THREE.BufferAttribute;
+  const index = geometry.getIndex();
+  expect(index).not.toBeNull();
+  const a = new THREE.Vector3().fromBufferAttribute(position, index!.getX(0));
+  const b = new THREE.Vector3().fromBufferAttribute(position, index!.getX(1));
+  const c = new THREE.Vector3().fromBufferAttribute(position, index!.getX(2));
+  expect(new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).y).toBeGreaterThan(0);
 }
 
 describe('Geographical Integrity', () => {
@@ -117,6 +132,54 @@ describe('Geographical Integrity', () => {
     const estimated = buildings.buildings.find((b) => b.heightEstimated === true);
     expect(measured).toBeDefined();
     expect(estimated).toBeDefined();
+  });
+
+  it('generates upward-facing road, rail, bridge, and river-ribbon triangles', () => {
+    const terrain = loadFixtureTerrain();
+    const hydro = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.hydrologyFile), 'utf-8')) as HydrologyPayload;
+    const roads = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.roadsFile), 'utf-8')) as RoadsPayload;
+    const railways = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.railwaysFile), 'utf-8')) as RailwaysPayload;
+    const bridges = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.bridgesFile), 'utf-8')) as BridgesPayload;
+    const hydrology = new HydrologySystem(fixtureConfig, hydro);
+    const roadSystem = new RoadNetworkSystem(fixtureConfig, terrain, roads, railways);
+    const bridgeSystem = new BridgeSystem(fixtureConfig, terrain, bridges);
+
+    const riverSurface = hydrology.group.getObjectByName('Fixture River') as THREE.Mesh;
+    expectUpwardFacing(riverSurface);
+    for (const mesh of roadSystem.group.children as THREE.Mesh[]) expectUpwardFacing(mesh);
+    expectUpwardFacing(bridgeSystem.group.getObjectByName('BridgeDecks') as THREE.Mesh);
+
+    hydrology.dispose();
+    roadSystem.dispose();
+    bridgeSystem.dispose();
+  });
+
+  it('resolves authoritative and displayed surfaces without conflating vertical exaggeration', () => {
+    const terrain = loadFixtureTerrain();
+    const hydro = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.hydrologyFile), 'utf-8')) as HydrologyPayload;
+    const roads = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.roadsFile), 'utf-8')) as RoadsPayload;
+    const railways = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.railwaysFile), 'utf-8')) as RailwaysPayload;
+    const bridges = JSON.parse(readFileSync(resolve(fixtureRoot, fixtureConfig.vectors.bridgesFile), 'utf-8')) as BridgesPayload;
+    const surfaces = new SurfaceResolver(fixtureConfig, terrain, hydro, roads, railways, bridges);
+    const terrainElevation = surfaces.getTerrainHeight(-1350, 0);
+    expect(surfaces.getRoadSurfaceHeight('rd-2001-0', 3500)).toBeCloseTo(terrainElevation, 2);
+    expect(surfaces.getRailSurfaceHeight('rl-2003-0', 3500)).not.toBeNull();
+    expect(surfaces.getBridgeDeckHeight('br-rd-2002-0', 900)).toBeGreaterThan(surfaces.getTerrainHeight(0, 0));
+    const water = surfaces.resolveWater(0, 0, 2);
+    expect(water?.elevationMeters).toBe(134);
+    expect(water?.renderedY).toBe((134 - fixtureConfig.coordinateSystem.origin.elevationDatumMeters) * 2);
+    expect(surfaces.resolveTerrain(0, 0, 2).elevationMeters).toBe(terrain.sampleElevationAt(0, 0));
+  });
+
+  it('builds connected reusable networks while excluding non-motorized road edges', () => {
+    const edges = [
+      { id: 'a', kind: 'primary', points: [[0, 0], [100, 0]] as [number, number][] },
+      { id: 'b', kind: 'residential', points: [[100, 0], [100, 100]] as [number, number][] },
+      { id: 'walk', kind: 'footway', points: [[0, 0], [0, 100]] as [number, number][] },
+    ];
+    const network = buildPolylineNetwork(edges);
+    expect(network.nodes.get('100:0')?.edgeIds).toEqual(expect.arrayContaining(['a', 'b']));
+    expect(motorVehicleEdges(edges).map((edge) => edge.id)).toEqual(['a', 'b']);
   });
 
   it('validates imported Greater Peoria USGS 3DEP terrain & OpenStreetMap vector alignment', () => {

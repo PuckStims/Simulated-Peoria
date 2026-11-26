@@ -11,11 +11,12 @@ import type {
   RegionConfig,
 } from '../core/types';
 import { TerrainData } from '../geography/TerrainData';
+import { SurfaceResolver } from '../geography/SurfaceResolver';
 import { TerrainSystem } from '../geography/Terrain';
 import { HydrologySystem, type HydrologyPayload } from '../geography/Hydrology';
 import { RoadNetworkSystem, type RailwaysPayload, type RoadsPayload } from '../civilization/Roads';
 import { BridgeSystem, type BridgesPayload } from '../civilization/Bridges';
-import { BuildingSystem, type BuildingsPayload } from '../civilization/Buildings';
+import { BuildingSystem, type BuildingsPayload, type BuildingFunctionCategory, type BuildingVisualizationMode } from '../civilization/Buildings';
 import { VegetationSystem, type LandcoverPayload } from '../ecology/Vegetation';
 import { CelestialSpace } from '../celestial/CelestialSpace';
 import { SunVisual } from '../celestial/Sun';
@@ -48,6 +49,7 @@ export class DioramaScene {
   readonly scene = new THREE.Scene();
   readonly worldGroup = new THREE.Group();
   readonly terrain: TerrainSystem;
+  readonly surfaceResolver: SurfaceResolver;
   readonly hydrology: HydrologySystem;
   readonly roads: RoadNetworkSystem;
   readonly bridges: BridgeSystem;
@@ -79,6 +81,7 @@ export class DioramaScene {
     this.celestialEnvelopeRadius = celestialRadius * 1.04;
 
     this.terrain = new TerrainSystem(assets.terrainData);
+    this.surfaceResolver = new SurfaceResolver(assets.config, assets.terrainData, assets.hydrology, assets.roads, assets.railways, assets.bridges);
     this.hydrology = new HydrologySystem(assets.config, assets.hydrology);
     this.roads = new RoadNetworkSystem(assets.config, assets.terrainData, assets.roads, assets.railways);
     this.bridges = new BridgeSystem(assets.config, assets.terrainData, assets.bridges);
@@ -155,6 +158,17 @@ export class DioramaScene {
     this.vegetation.setVerticalExaggeration(factor);
     this.fog.setVerticalExaggeration(factor);
     this.precipitation.setVerticalExaggeration(factor);
+  }
+
+  /** Inspection override only: it never changes ephemeris or environmental state. */
+  setDaylightMode(enabled: boolean): void {
+    this.lighting.setDaylightMode(enabled);
+    this.fog.setDaylightMode(enabled);
+  }
+
+  setBuildingVisualization(mode: BuildingVisualizationMode, categories: Iterable<BuildingFunctionCategory> | null): void {
+    this.buildings.setVisualizationMode(mode);
+    this.buildings.setSelectedCategories(categories);
   }
 
   update(
